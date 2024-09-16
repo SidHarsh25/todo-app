@@ -1,0 +1,57 @@
+db.sales.aggregate([
+    {
+        $unwind: "$items"
+    },
+
+    {
+        $project: {
+            store: 1,
+            month: { $dateToString: { format: "%Y-%m", date: "$date" } },
+            totalRevenue: { $multiply: ["$items.quantity", "$items.price"] },
+            price: "$items.price"
+        }
+    },
+
+    {
+        $group: {
+            _id: { store: "$store", month: "$month" },
+            totalRevenue: { $sum: "$totalRevenue" },
+            averagePrice: { $avg: "$price" }
+        }
+    },
+
+    {
+        $project: {
+            _id: 0,
+            store: "$_id.store",
+            month: "$_id.month",
+            totalRevenue: 1,
+            averagePrice: { $round: ["$averagePrice", 2] } 
+        }
+    },
+
+    {
+        $sort: { store: 1, month: 1 }
+    }
+
+]);
+
+
+
+//Expected Output
+
+[
+    {
+        "store": "Store A",
+        "month": "2024-06",
+        "totalRevenue": 230.0,
+        "averagePrice": 15.0
+    },
+    {
+        "store": "Store B",
+        "month": "2024-06",
+        "totalRevenue": 150.0,
+        "averagePrice": 12.5
+    }
+]
+
